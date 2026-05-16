@@ -1,9 +1,9 @@
 #!/bin/bash
 
 
-# We have straight / dijkstra
+# We have straight / dijkstra / a_star / rrt / genetic / aco / sa
 INIT_METHOD="dijkstra"
-# We have penalty gradient / sqp
+# We have penalty / sqp
 OPT_METHOD="sqp"
 # Set what you want to run
 WAYPOINTS=200
@@ -19,7 +19,6 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-echo "Running UAV Path Planning with:"
 echo "Initialization: $INIT_METHOD"
 echo "Optimization: $OPT_METHOD"
 echo "Waypoints: $WAYPOINTS"
