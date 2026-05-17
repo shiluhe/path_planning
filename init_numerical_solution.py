@@ -117,7 +117,7 @@ def plot_result(initial_path, final_path, title, filename, obstacles_arr=None, s
     print(f"Figure saved: results/{filename}")
 
 def animate_result(initial_path, final_path, title, filename, obstacles_arr=None, start_p=None, end_p=None, space_lim=None):
-    
+
     if obstacles_arr is None:
         from main import obstacles
         obstacles_arr = obstacles

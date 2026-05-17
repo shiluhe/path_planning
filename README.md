@@ -21,6 +21,7 @@ pip install -r requirements.txt
     --init_method "$INIT_METHOD" \
     --opt_method "$OPT_METHOD" \
     --waypoints "$WAYPOINTS"
+
 # init_method include:straight / dijkstra / a_star / rrt / genetic / aco
 # opt_method include: penalty / sqp
 ```
