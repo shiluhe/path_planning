@@ -30,7 +30,7 @@ def get_rrt_path(start, end, space_limit, obstacles_arr, step_size=1.0, max_iter
     node_list = [start_node]
     
     for _ in range(max_iter):
-        # 10% 概率向终点采样，90% 全局随机
+        # 10% random to end_point，90% random 
         if random.random() > 0.1:
             rnd_x = random.uniform(0, space_limit)
             rnd_y = random.uniform(0, space_limit)
@@ -38,10 +38,10 @@ def get_rrt_path(start, end, space_limit, obstacles_arr, step_size=1.0, max_iter
         else:
             rnd_node = Node(end_node.x, end_node.y)
             
-        # 寻找最近树节点
+        # find nearest node
         nearest_node = min(node_list, key=lambda n: (n.x - rnd_node.x)**2 + (n.y - rnd_node.y)**2)
         
-        # 步进
+        # step from nearest_node towards rnd_node
         theta = np.arctan2(rnd_node.y - nearest_node.y, rnd_node.x - nearest_node.x)
         new_x = nearest_node.x + step_size * np.cos(theta)
         new_y = nearest_node.y + step_size * np.sin(theta)
@@ -53,12 +53,11 @@ def get_rrt_path(start, end, space_limit, obstacles_arr, step_size=1.0, max_iter
         new_pt = np.array([new_x, new_y])
         nearest_pt = np.array([nearest_node.x, nearest_node.y])
         
-        # 碰撞检测
         if is_edge_collision_free(nearest_pt, new_pt, obstacles_arr):
             new_node.parent = nearest_node
             node_list.append(new_node)
             
-            # 检查是否到达终点附近
+            # if near the end point, try to connect directly
             if np.sqrt((new_node.x - end_node.x)**2 + (new_node.y - end_node.y)**2) <= step_size:
                 if is_edge_collision_free(np.array([new_node.x, new_node.y]), np.array([end_node.x, end_node.y]), obstacles_arr):
                     end_node.parent = new_node

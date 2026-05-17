@@ -4,7 +4,13 @@ conda create -n pathplan python=3.12
 conda activate pathplan
 ```
 
-## 安装依赖
+## 安装系统依赖（保存video）
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+## 安装环境依赖
 ```bash
 pip install -r requirements.txt
 ```

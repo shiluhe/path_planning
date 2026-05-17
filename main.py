@@ -1,7 +1,7 @@
 """
 UAV Path Planning - Python Implementation
 Two numerical methods: Penalty + Gradient Descent / SQP (scipy.optimize)
-Six meta_init_algorithms for initialization: Dijkstra, A*, RRT, GA, ACO, SA, (Default: Straight Line)
+five meta_init_algorithms for initialization: Dijkstra, A*, RRT, GA, ACO, (Default: Straight Line)
 """
 
  # 设置非交互式后端，解决 GUI xcb 报错
@@ -20,8 +20,8 @@ from meta_algorithm.a_star import get_a_star_path
 from meta_algorithm.rrt import get_rrt_path
 from meta_algorithm.genetic import get_genetic_path
 from meta_algorithm.ant_colony import get_aco_path
-from meta_algorithm.simulated_annealing import get_sa_path
-from init_numerical_solution import obj_length, inequality_constraint, equality_constraint, plot_result
+from init_numerical_solution import obj_length, inequality_constraint, equality_constraint, plot_result, animate_result
+import time
 
 # ============ Global Parameters ============
 space_limit = 30
@@ -41,16 +41,8 @@ obstacles = np.array([
     [10, 2, 2]
 ])
 
-# ============ Method 1: Penalty + Gradient Descent ============
-def run_penalty_gradient(n_waypoints=20, init_method='straight'):
-    print("\n" + "="*60)
-    print(f"Method 1: Penalty Function + Gradient Descent (n_waypoints={n_waypoints}, init_method={init_method})")
-    print("="*60)
-
-    import time
-    t0 = time.time()
-
-    # Entrance mata_algorithm
+# # ============ choose initialization algorithm ============
+def meta_algorithm_choose(init_method, start_point, end_point, space_limit, obstacles, n_waypoints):
     if init_method == 'dijkstra':
         raw_path = get_dijkstra_path(start_point, end_point, space_limit, obstacles)
         if raw_path is not None:
@@ -73,8 +65,6 @@ def run_penalty_gradient(n_waypoints=20, init_method='straight'):
             t = np.linspace(0, 1, n_waypoints + 2)
             initial_path = (1 - t.reshape(-1, 1)) * start_point + t.reshape(-1, 1) * end_point
     elif init_method == 'genetic':
-        # Genetic Algorithm return value is already a resampled set of points based on its configuration,
-        # but to ensure consistency with n_waypoints, we can still resample it.
         raw_path = get_genetic_path(start_point, end_point, space_limit, obstacles)
         if raw_path is not None:
             initial_path = resample_path(raw_path, n_waypoints)
@@ -88,17 +78,23 @@ def run_penalty_gradient(n_waypoints=20, init_method='straight'):
         else:
             t = np.linspace(0, 1, n_waypoints + 2)
             initial_path = (1 - t.reshape(-1, 1)) * start_point + t.reshape(-1, 1) * end_point
-    elif init_method == 'sa':
-        raw_path = get_sa_path(start_point, end_point, space_limit, obstacles)
-        if raw_path is not None:
-            initial_path = resample_path(raw_path, n_waypoints)
-        else:
-            t = np.linspace(0, 1, n_waypoints + 2)
-            initial_path = (1 - t.reshape(-1, 1)) * start_point + t.reshape(-1, 1) * end_point
     else:
         # Fallback to straight line
         t = np.linspace(0, 1, n_waypoints + 2)
         initial_path = (1 - t.reshape(-1, 1)) * start_point + t.reshape(-1, 1) * end_point
+    return initial_path
+
+
+# ============ Method 1: Penalty + Gradient Descent ============
+def run_penalty_gradient(n_waypoints=20, init_method='straight'):
+    print("\n" + "="*60)
+    print(f"opt_method: penalty | init_method={init_method} | n_waypoints={n_waypoints}")
+    print("="*60)
+
+    t0 = time.time()
+
+    # Entrance meta_algorithm
+    initial_path = meta_algorithm_choose(init_method, start_point, end_point, space_limit, obstacles, n_waypoints)
 
     X_initial = initial_path[1:-1]
 
@@ -109,9 +105,9 @@ def run_penalty_gradient(n_waypoints=20, init_method='straight'):
     distances_init = np.sqrt(np.sum(diffs_init**2, axis=1))
     initial_L = np.sum(distances_init)
     
-    print(f"Initialization time: {init_time:.4f} seconds")
+    print(f"Initialization time: {init_time:.2f} seconds")
     print(f"Initial path length: {initial_L:.2f} m")
-
+    print("-"*60)
     opt_start = time.time()
 
     # Increase penalty weights (sigma) and reduce learning rate to fix bug
@@ -187,7 +183,8 @@ def run_penalty_gradient(n_waypoints=20, init_method='straight'):
     distances = np.sqrt(np.sum(diffs**2, axis=1))
     total_L = np.sum(distances)
 
-    print(f"Optimization time: {opt_time:.4f} seconds")
+    print("-"*60)
+    print(f"Optimization time: {opt_time:.2f} seconds")
     print(f"Optimized path length: {total_L:.2f} m")
 
     plot_result(initial_path, final_path,
@@ -195,64 +192,24 @@ def run_penalty_gradient(n_waypoints=20, init_method='straight'):
                 f"{init_method}_penalty_n{n_waypoints}.png",
                 obstacles_arr=obstacles, start_p=start_point, end_p=end_point, space_lim=space_limit)
 
+    animate_result(initial_path, final_path,
+                   f"Penalty + Gradient Descent (n={n_waypoints})",
+                   f"{init_method}_penalty_n{n_waypoints}.mp4",
+                   obstacles_arr=obstacles, start_p=start_point, end_p=end_point, space_lim=space_limit)
+
     return final_path, total_L
 
 
 # ============ Method 2: SQP ============
 def run_sqp(n_waypoints=200, init_method='straight'):
     print("\n" + "="*60)
-    print(f"Method 2: SQP (Sequential Quadratic Programming) (n_waypoints={n_waypoints}, init_method={init_method})")
+    print(f"opt_method: sqp | init_method={init_method} | n_waypoints={n_waypoints}")
     print("="*60)
 
-    import time
     t0 = time.time()
 
     # Entrance mata_algorithm
-    if init_method == 'dijkstra':
-        raw_path = get_dijkstra_path(start_point, end_point, space_limit, obstacles)
-        if raw_path is not None:
-            initial_path = resample_path(raw_path, n_waypoints)
-        else:
-            t = np.linspace(0, 1, n_waypoints + 2)
-            initial_path = (1 - t.reshape(-1, 1)) * start_point + t.reshape(-1, 1) * end_point
-    elif init_method == 'a_star':
-        raw_path = get_a_star_path(start_point, end_point, space_limit, obstacles)
-        if raw_path is not None:
-            initial_path = resample_path(raw_path, n_waypoints)
-        else:
-            t = np.linspace(0, 1, n_waypoints + 2)
-            initial_path = (1 - t.reshape(-1, 1)) * start_point + t.reshape(-1, 1) * end_point
-    elif init_method == 'rrt':
-        raw_path = get_rrt_path(start_point, end_point, space_limit, obstacles)
-        if raw_path is not None:
-            initial_path = resample_path(raw_path, n_waypoints)
-        else:
-            t = np.linspace(0, 1, n_waypoints + 2)
-            initial_path = (1 - t.reshape(-1, 1)) * start_point + t.reshape(-1, 1) * end_point
-    elif init_method == 'genetic':
-        raw_path = get_genetic_path(start_point, end_point, space_limit, obstacles)
-        if raw_path is not None:
-            initial_path = resample_path(raw_path, n_waypoints)
-        else:
-            t = np.linspace(0, 1, n_waypoints + 2)
-            initial_path = (1 - t.reshape(-1, 1)) * start_point + t.reshape(-1, 1) * end_point
-    elif init_method == 'aco':
-        raw_path = get_aco_path(start_point, end_point, space_limit, obstacles)
-        if raw_path is not None:
-            initial_path = resample_path(raw_path, n_waypoints)
-        else:
-            t = np.linspace(0, 1, n_waypoints + 2)
-            initial_path = (1 - t.reshape(-1, 1)) * start_point + t.reshape(-1, 1) * end_point
-    elif init_method == 'sa':
-        raw_path = get_sa_path(start_point, end_point, space_limit, obstacles)
-        if raw_path is not None:
-            initial_path = resample_path(raw_path, n_waypoints)
-        else:
-            t = np.linspace(0, 1, n_waypoints + 2)
-            initial_path = (1 - t.reshape(-1, 1)) * start_point + t.reshape(-1, 1) * end_point
-    else:
-        t = np.linspace(0, 1, n_waypoints + 2)
-        initial_path = (1 - t.reshape(-1, 1)) * start_point + t.reshape(-1, 1) * end_point
+    initial_path = meta_algorithm_choose(init_method, start_point, end_point, space_limit, obstacles, n_waypoints)
 
     X_initial = initial_path[1:-1]
 
@@ -263,9 +220,9 @@ def run_sqp(n_waypoints=200, init_method='straight'):
     distances_init = np.sqrt(np.sum(diffs_init**2, axis=1))
     initial_L = np.sum(distances_init)
     
-    print(f"Initialization time: {init_time:.4f} seconds")
+    print(f"Initialization time: {init_time:.2f} seconds")
     print(f"Initial path length: {initial_L:.2f} m")
-
+    print("-"*60)
     opt_start = time.time()
 
     x0 = X_initial.flatten()
@@ -279,7 +236,7 @@ def run_sqp(n_waypoints=200, init_method='straight'):
         method='SLSQP',
         bounds=bounds,
         constraints=[
-            {'type': 'ineq', 'fun': lambda x: inequality_constraint(x, obstacles)},
+            {'type': 'ineq', 'fun': lambda x: inequality_constraint(x, obstacles, start_point, end_point)},
             {'type': 'eq', 'fun': lambda x: equality_constraint(x, start_point, end_point)}
         ],
         options={'maxiter': 1000, 'ftol': 1e-6, 'disp': True}
@@ -295,13 +252,19 @@ def run_sqp(n_waypoints=200, init_method='straight'):
     distances = np.sqrt(np.sum(diffs**2, axis=1))
     total_L = np.sum(distances)
 
-    print(f"Optimization time: {opt_time:.4f} seconds")
+    print("-"*60)
+    print(f"Optimization time: {opt_time:.2f} seconds")
     print(f"Optimized path length: {total_L:.2f} m")
 
     plot_result(initial_path, final_path,
                 f"SQP Optimization (n={n_waypoints})",
                 f"{init_method}_sqp_n{n_waypoints}.png",
                 obstacles_arr=obstacles, start_p=start_point, end_p=end_point, space_lim=space_limit)
+
+    animate_result(initial_path, final_path,
+                   f"SQP Optimization (n={n_waypoints})",
+                   f"{init_method}_sqp_n{n_waypoints}.mp4",
+                   obstacles_arr=obstacles, start_p=start_point, end_p=end_point, space_lim=space_limit)
 
     return final_path, total_L
 
@@ -328,6 +291,6 @@ if __name__ == "__main__":
     if args.opt_method in ["sqp"]:
         run_sqp(n_waypoints=args.waypoints, init_method=args.init_method)
 
-    print("\n" + "="*60)
+    print("="*60)
     print("All optimizations complete! Results saved to results/ folder")
     print("="*60)

@@ -18,7 +18,7 @@ def get_aco_path(start, end, space_limit, obstacles_arr, resolution=1.0,
     start_idx = to_grid(start[0], start[1])
     end_idx = to_grid(end[0], end[1])
     
-    # 节点上的信息素浓度矩阵
+    # pheromone concentration matrix on the node
     pheromones = np.ones((grid_size, grid_size)) * 0.1
     
     directions = [(0,1), (1,0), (0,-1), (-1,0), (1,1), (-1,-1), (1,-1), (-1,1)]
@@ -36,7 +36,6 @@ def get_aco_path(start, end, space_limit, obstacles_arr, resolution=1.0,
             visited = set([curr])
             
             reached_end = False
-            # 限制最大步数，防死胡同无限循环
             for step in range(grid_size * 4):
                 if curr == end_idx:
                     reached_end = True
@@ -53,13 +52,13 @@ def get_aco_path(start, end, space_limit, obstacles_arr, resolution=1.0,
                             if is_collision_free(n_pt, obstacles_arr):
                                 valid_neighbors.append((nx, ny))
                                 tau = pheromones[nx, ny]
-                                # 启发式因子：到终点距离的倒数
+                                # Heuristic factor (eta)
                                 dist_to_end = np.sqrt((nx - end_idx[0])**2 + (ny - end_idx[1])**2)
                                 eta = 1.0 / (dist_to_end + 1e-6)
                                 probs.append((tau ** alpha) * (eta ** beta))
                                 
                 if not valid_neighbors:
-                    break # 走到死角
+                    break
                     
                 probs = np.array(probs)
                 if np.sum(probs) == 0:
@@ -67,14 +66,14 @@ def get_aco_path(start, end, space_limit, obstacles_arr, resolution=1.0,
                 else:
                     probs /= np.sum(probs)
                     
-                # 轮盘赌选择下一个节点
+                # “Roulette selection”
                 idx = np.random.choice(len(valid_neighbors), p=probs)
                 curr = valid_neighbors[idx]
                 path.append(curr)
                 visited.add(curr)
                 
             if reached_end:
-                # 计算路径代价
+                # cost = path length
                 cost = sum(np.sqrt((path[i][0] - path[i-1][0])**2 + (path[i][1] - path[i-1][1])**2) for i in range(1, len(path)))
                 all_paths.append(path)
                 all_costs.append(cost)
@@ -83,7 +82,7 @@ def get_aco_path(start, end, space_limit, obstacles_arr, resolution=1.0,
                     best_cost = cost
                     best_path = path.copy()
         
-        # 信息素挥发与更新
+        # pheromones go away and renewal
         pheromones *= (1 - evaporation_rate)
         for path, cost in zip(all_paths, all_costs):
             delta_tau = 10.0 / cost
@@ -91,7 +90,7 @@ def get_aco_path(start, end, space_limit, obstacles_arr, resolution=1.0,
                 pheromones[node[0], node[1]] += delta_tau
                 
     if best_path is None:
-        print("未找到有效路径！")
+        print("No valid path found!")
         return None
         
     real_path = [[pt[0] * resolution, pt[1] * resolution] for pt in best_path]

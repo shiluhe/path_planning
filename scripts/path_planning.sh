@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-# We have straight / dijkstra / a_star / rrt / genetic / aco / sa
+# We have straight / dijkstra / a_star / rrt / genetic / aco
 INIT_METHOD="dijkstra"
 # We have penalty / sqp
 OPT_METHOD="sqp"
@@ -19,9 +19,9 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-echo "Initialization: $INIT_METHOD"
-echo "Optimization: $OPT_METHOD"
-echo "Waypoints: $WAYPOINTS"
+# echo "Initialization: $INIT_METHOD"
+# echo "Optimization: $OPT_METHOD"
+# echo "Waypoints: $WAYPOINTS"
 
 python main.py \
     --init_method "$INIT_METHOD" \
